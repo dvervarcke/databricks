@@ -5,6 +5,7 @@ from pyspark.sql.functions import col, sum
 # This file defines a sample transformation.
 # Edit the sample below or add new transformations
 # using "+ Add" in the file browser.
+#v2 DV
 
 
 @dlt.table
