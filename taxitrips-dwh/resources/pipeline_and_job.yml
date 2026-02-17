@@ -2,16 +2,16 @@ resources:
   pipelines:
     taxitrips_dlt_pipeline:
       name: taxitrips-dlt
-      catalog: taxi_dwh
+      catalog: dev
       target: bronze
       continuous: false
       development: true
       photon: true
       channel: CURRENT
-      serverless: false
+      serverless: true
       libraries:
         - file:
-            path: ./dlt/taxitrips_pipeline.py
+            path: ../dlt/taxitrips_pipeline.py
       configuration:
         taxi.source.path: dbfs:/databricks-datasets/nyctaxi/tripdata/yellow/
         taxi.source.format: csv
