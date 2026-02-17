@@ -38,8 +38,8 @@ SELECT 'fact_taxi_rides', COUNT(*) FROM main.taxi_dw.fact_taxi_rides;
 - `state_code`
 - `dw_loaded_at`
 
-## Scheduled missing-city pipeline
-- Databricks job: `taxi-dw-missing-city-refresh`
+## Scheduled daily pipeline
+- Databricks job: `taxi-dw-daily-incremental-load-and-enrichment`
 - Job ID: `52643488824313`
 - Notebook paths:
   - `/Workspace/Users/rickoe@hotmail.com/taxi_dw/run_incremental_dw_load`
