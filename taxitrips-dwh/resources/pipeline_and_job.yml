@@ -1,0 +1,32 @@
+resources:
+  pipelines:
+    taxitrips_dlt_pipeline:
+      name: taxitrips-dlt
+      catalog: dev
+      target: bronze
+      continuous: false
+      development: true
+      photon: true
+      channel: CURRENT
+      serverless: true
+      libraries:
+        - file:
+            path: ../dlt/taxitrips_pipeline.py
+      configuration:
+        taxi.source.path: dbfs:/databricks-datasets/nyctaxi/tripdata/yellow/
+        taxi.source.format: csv
+        taxi.schema.location: dbfs:/pipelines/taxi_dwh/schema
+
+  jobs:
+    taxitrips_daily_job:
+      name: taxitrips-dlt-daily
+      tasks:
+        - task_key: run_taxi_dlt
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.taxitrips_dlt_pipeline.id}
+            full_refresh: false
+      schedule:
+        quartz_cron_expression: "0 0 7 * * ?"
+        timezone_id: America/New_York
+        pause_status: UNPAUSED
+      max_concurrent_runs: 1
