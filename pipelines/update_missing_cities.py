@@ -1,5 +1,5 @@
 # Databricks notebook source
-# Pipeline: update missing city mappings for taxi ZIP codes.
+# Pipeline: update missing city mappings for taxi ZIP codes incrementally.
 
 from __future__ import annotations
 
@@ -49,6 +49,42 @@ spark.sql(
       updated_at TIMESTAMP
     )
     USING DELTA
+    """
+)
+
+spark.sql(
+    f"""
+    CREATE TABLE IF NOT EXISTS {DIM_CITY_TABLE} (
+      city_key BIGINT,
+      city_name STRING,
+      state_code STRING,
+      dw_loaded_at TIMESTAMP
+    )
+    USING DELTA
+    """
+)
+
+spark.sql(
+    f"""
+    CREATE TABLE IF NOT EXISTS {DIM_ZIP_TABLE} (
+      zipcode_key BIGINT,
+      zipcode STRING,
+      city_key BIGINT,
+      dw_loaded_at TIMESTAMP
+    )
+    USING DELTA
+    """
+)
+
+spark.sql(
+    f"""
+    MERGE INTO {DIM_CITY_TABLE} t
+    USING (
+      SELECT 0 AS city_key, 'UNKNOWN' AS city_name, CAST(NULL AS STRING) AS state_code, current_timestamp() AS dw_loaded_at
+    ) s
+    ON t.city_key = s.city_key
+    WHEN NOT MATCHED THEN INSERT (city_key, city_name, state_code, dw_loaded_at)
+    VALUES (s.city_key, s.city_name, s.state_code, s.dw_loaded_at)
     """
 )
 
@@ -121,62 +157,66 @@ if updates:
 
 spark.sql(
     f"""
-    CREATE OR REPLACE TABLE {DIM_CITY_TABLE}
-    USING DELTA
-    AS
-    WITH city_list AS (
+    MERGE INTO {DIM_CITY_TABLE} t
+    USING (
       SELECT DISTINCT
+        ABS(xxhash64(concat_ws('|', UPPER(TRIM(city_name)), coalesce(UPPER(TRIM(state_code)), '')))) AS city_key,
         UPPER(TRIM(city_name)) AS city_name,
-        UPPER(TRIM(state_code)) AS state_code
+        UPPER(TRIM(state_code)) AS state_code,
+        current_timestamp() AS dw_loaded_at
       FROM {REF_TABLE}
-      WHERE city_name IS NOT NULL AND TRIM(city_name) <> ''
-    )
-    SELECT
-      0 AS city_key,
-      'UNKNOWN' AS city_name,
-      NULL AS state_code,
-      current_timestamp() AS dw_loaded_at
-    UNION ALL
-    SELECT
-      ABS(xxhash64(concat_ws('|', city_name, coalesce(state_code, '')))) AS city_key,
-      city_name,
-      state_code,
-      current_timestamp() AS dw_loaded_at
-    FROM city_list
+      WHERE city_name IS NOT NULL AND TRIM(city_name) <> '' AND UPPER(TRIM(city_name)) <> 'UNKNOWN'
+    ) s
+    ON t.city_key = s.city_key
+    WHEN MATCHED AND (
+      t.city_name <> s.city_name OR coalesce(t.state_code, '') <> coalesce(s.state_code, '')
+    ) THEN UPDATE SET
+      city_name = s.city_name,
+      state_code = s.state_code,
+      dw_loaded_at = s.dw_loaded_at
+    WHEN NOT MATCHED THEN INSERT (city_key, city_name, state_code, dw_loaded_at)
+    VALUES (s.city_key, s.city_name, s.state_code, s.dw_loaded_at)
     """
 )
 
 spark.sql(
     f"""
-    CREATE OR REPLACE TABLE {DIM_ZIP_TABLE}
-    USING DELTA
-    AS
-    WITH zip_source AS (
-      SELECT lpad(CAST(pickup_zip AS STRING), 5, '0') AS zipcode
-      FROM {SOURCE_TABLE}
-      WHERE pickup_zip IS NOT NULL
-      UNION
-      SELECT lpad(CAST(dropoff_zip AS STRING), 5, '0') AS zipcode
-      FROM {SOURCE_TABLE}
-      WHERE dropoff_zip IS NOT NULL
-    ),
-    zip_city AS (
+    MERGE INTO {DIM_ZIP_TABLE} t
+    USING (
+      WITH zip_source AS (
+        SELECT lpad(CAST(pickup_zip AS STRING), 5, '0') AS zipcode
+        FROM {SOURCE_TABLE}
+        WHERE pickup_zip IS NOT NULL
+        UNION
+        SELECT lpad(CAST(dropoff_zip AS STRING), 5, '0') AS zipcode
+        FROM {SOURCE_TABLE}
+        WHERE dropoff_zip IS NOT NULL
+      ),
+      zip_city AS (
+        SELECT
+          z.zipcode,
+          COALESCE(UPPER(TRIM(r.city_name)), 'UNKNOWN') AS city_name,
+          UPPER(TRIM(r.state_code)) AS state_code
+        FROM (SELECT DISTINCT zipcode FROM zip_source) z
+        LEFT JOIN {REF_TABLE} r ON z.zipcode = r.zipcode
+      )
       SELECT
-        z.zipcode,
-        COALESCE(UPPER(TRIM(r.city_name)), 'UNKNOWN') AS city_name,
-        UPPER(TRIM(r.state_code)) AS state_code
-      FROM (SELECT DISTINCT zipcode FROM zip_source) z
-      LEFT JOIN {REF_TABLE} r ON z.zipcode = r.zipcode
-    )
-    SELECT
-      ABS(xxhash64(zipcode)) AS zipcode_key,
-      zipcode,
-      CASE
-        WHEN city_name = 'UNKNOWN' THEN 0
-        ELSE ABS(xxhash64(concat_ws('|', city_name, coalesce(state_code, ''))))
-      END AS city_key,
-      current_timestamp() AS dw_loaded_at
-    FROM zip_city
+        ABS(xxhash64(zipcode)) AS zipcode_key,
+        zipcode,
+        CASE
+          WHEN city_name = 'UNKNOWN' THEN 0
+          ELSE ABS(xxhash64(concat_ws('|', city_name, coalesce(state_code, ''))))
+        END AS city_key,
+        current_timestamp() AS dw_loaded_at
+      FROM zip_city
+    ) s
+    ON t.zipcode_key = s.zipcode_key
+    WHEN MATCHED AND (t.city_key <> s.city_key OR t.zipcode <> s.zipcode) THEN UPDATE SET
+      zipcode = s.zipcode,
+      city_key = s.city_key,
+      dw_loaded_at = s.dw_loaded_at
+    WHEN NOT MATCHED THEN INSERT (zipcode_key, zipcode, city_key, dw_loaded_at)
+    VALUES (s.zipcode_key, s.zipcode, s.city_key, s.dw_loaded_at)
     """
 )
 

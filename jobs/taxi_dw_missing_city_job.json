@@ -17,7 +17,7 @@
   "tasks": [
     {
       "task_key": "update-missing-cities",
-      "description": "Refresh missing city names from external ZIP reference and rebuild city/zipcode dimensions.",
+      "description": "Refresh missing city names from external ZIP reference and incrementally upsert city/zipcode dimensions.",
       "notebook_task": {
         "notebook_path": "/Workspace/Users/rickoe@hotmail.com/taxi_dw/update_missing_cities",
         "source": "WORKSPACE"
