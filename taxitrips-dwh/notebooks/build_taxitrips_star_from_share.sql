@@ -19,6 +19,16 @@ DECLARE destination_zip_col STRING;
 DECLARE fare_col STRING;
 DECLARE origin_city_col STRING;
 DECLARE destination_city_col STRING;
+DECLARE origin_city_expr STRING;
+DECLARE destination_city_expr STRING;
+
+EXECUTE IMMEDIATE format_string(
+  'CREATE TABLE IF NOT EXISTS %s.zip_city_lookup (
+     zip_code STRING,
+     city STRING
+   )',
+  target_schema
+);
 
 SET VAR trip_date_col = (
   SELECT COALESCE(
@@ -103,6 +113,14 @@ SET VAR destination_city_col = (
 );
 
 SET VAR source_fq_table = concat(source_catalog, '.', source_schema, '.', source_table);
+SET VAR origin_city_expr = CASE
+  WHEN origin_city_col IS NULL THEN 'CAST(NULL AS STRING)'
+  ELSE concat('CAST(src.', origin_city_col, ' AS STRING)')
+END;
+SET VAR destination_city_expr = CASE
+  WHEN destination_city_col IS NULL THEN 'CAST(NULL AS STRING)'
+  ELSE concat('CAST(src.', destination_city_col, ' AS STRING)')
+END;
 
 SELECT assert_true(
   trip_date_col IS NOT NULL
@@ -147,24 +165,32 @@ EXECUTE IMMEDIATE format_string(
      any_value(city) AS city
    FROM (
      SELECT
-       TRIM(CAST(%s AS STRING)) AS zip_code,
-       %s AS city
-     FROM %s
+       TRIM(CAST(src.%s AS STRING)) AS zip_code,
+       COALESCE(%s, zl1.city) AS city
+     FROM %s src
+     LEFT JOIN %s.zip_city_lookup zl1
+       ON zl1.zip_code = TRIM(CAST(src.%s AS STRING))
      UNION ALL
      SELECT
-       TRIM(CAST(%s AS STRING)) AS zip_code,
-       %s AS city
-     FROM %s
+       TRIM(CAST(src.%s AS STRING)) AS zip_code,
+       COALESCE(%s, zl2.city) AS city
+     FROM %s src
+     LEFT JOIN %s.zip_city_lookup zl2
+       ON zl2.zip_code = TRIM(CAST(src.%s AS STRING))
    ) z
    WHERE zip_code IS NOT NULL AND zip_code <> ''''
    GROUP BY zip_code',
   target_schema,
   origin_zip_col,
-  CASE WHEN origin_city_col IS NULL THEN 'CAST(NULL AS STRING)' ELSE concat('CAST(', origin_city_col, ' AS STRING)') END,
+  origin_city_expr,
   source_fq_table,
+  target_schema,
+  origin_zip_col,
   destination_zip_col,
-  CASE WHEN destination_city_col IS NULL THEN 'CAST(NULL AS STRING)' ELSE concat('CAST(', destination_city_col, ' AS STRING)') END,
-  source_fq_table
+  destination_city_expr,
+  source_fq_table,
+  target_schema,
+  destination_zip_col
 );
 
 SELECT COUNT(*) AS fact_rows FROM taxi_dwh.gold.fact_taxitrips_zip;
