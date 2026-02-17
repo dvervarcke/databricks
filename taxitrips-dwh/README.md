@@ -14,6 +14,8 @@ Small Databricks medallion warehouse for taxi trips using Delta Live Tables (DLT
   Example Databricks Jobs API payload for manual/API-based job setup.
 - `notebooks/analytics_examples.sql`:
   Starter SQL for common analytics queries.
+- `notebooks/build_taxitrips_star_from_share.sql`:
+  Builds `taxi_dwh.gold.fact_taxitrips_zip` and `taxi_dwh.gold.dim_zipcode` from shared table `nyctaxi.trips`.
 
 ## Prerequisites
 
