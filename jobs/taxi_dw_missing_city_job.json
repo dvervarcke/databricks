@@ -1,0 +1,29 @@
+{
+  "name": "taxi-dw-missing-city-refresh",
+  "max_concurrent_runs": 1,
+  "schedule": {
+    "quartz_cron_expression": "0 0 6 * * ?",
+    "timezone_id": "America/New_York",
+    "pause_status": "UNPAUSED"
+  },
+  "environments": [
+    {
+      "environment_key": "default",
+      "spec": {
+        "client": "2"
+      }
+    }
+  ],
+  "tasks": [
+    {
+      "task_key": "update-missing-cities",
+      "description": "Refresh missing city names from external ZIP reference and rebuild city/zipcode dimensions.",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/rickoe@hotmail.com/taxi_dw/update_missing_cities",
+        "source": "WORKSPACE"
+      },
+      "environment_key": "default",
+      "timeout_seconds": 0
+    }
+  ]
+}
