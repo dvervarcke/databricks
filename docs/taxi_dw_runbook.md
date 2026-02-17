@@ -41,13 +41,15 @@ SELECT 'fact_taxi_rides', COUNT(*) FROM main.taxi_dw.fact_taxi_rides;
 ## Scheduled missing-city pipeline
 - Databricks job: `taxi-dw-missing-city-refresh`
 - Job ID: `52643488824313`
-- Notebook path: `/Workspace/Users/rickoe@hotmail.com/taxi_dw/update_missing_cities`
-- Schedule: daily at 06:00 `America/New_York`
+- Notebook paths:
+  - `/Workspace/Users/rickoe@hotmail.com/taxi_dw/run_incremental_dw_load`
+  - `/Workspace/Users/rickoe@hotmail.com/taxi_dw/update_missing_cities`
+- Schedule: daily at 07:00 `America/Los_Angeles` (PT)
 - Logic:
-  - Finds ZIPs missing from `main.taxi_dw.zip_city_reference` or still mapped as `UNKNOWN`
-  - Calls external ZIP API (`zippopotam.us`) for those ZIPs only
-  - Upserts `main.taxi_dw.zip_city_reference`
-  - Incrementally upserts `main.taxi_dw.dim_city` and `main.taxi_dw.dim_zipcode` via `MERGE`
+  - Task 1 (`run-incremental-dw-load`): incrementally loads fact/date/zipcode using watermark + `MERGE`
+  - Task 2 (`update-missing-cities`): runs after task 1 and enriches missing city mappings
+  - Calls external ZIP API (`zippopotam.us`) only for unresolved ZIPs
+  - Upserts `main.taxi_dw.zip_city_reference`, `main.taxi_dw.dim_city`, and `main.taxi_dw.dim_zipcode`
 
 ## Incremental fact/dim load
 - `001_build_taxi_dw.sql` no longer rebuilds tables from scratch.
