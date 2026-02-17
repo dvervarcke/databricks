@@ -1,0 +1,18 @@
+{
+  "name": "taxitrips-dlt-daily",
+  "tasks": [
+    {
+      "task_key": "run_taxi_dlt",
+      "pipeline_task": {
+        "pipeline_id": "<REPLACE_WITH_DLT_PIPELINE_ID>",
+        "full_refresh": false
+      }
+    }
+  ],
+  "schedule": {
+    "quartz_cron_expression": "0 0 7 * * ?",
+    "timezone_id": "America/New_York",
+    "pause_status": "UNPAUSED"
+  },
+  "max_concurrent_runs": 1
+}
