@@ -46,7 +46,7 @@ It includes:
    - `/Users/dvervarcke/Documents/New project/sql/002_enrich_city_from_external_zip.sql`
 3. Deploy notebook and job:
    - Notebook path: `/Workspace/Users/rickoe@hotmail.com/taxi_dw/update_missing_cities`
-   - Job name: `taxi-dw-missing-city-refresh`
+   - Job name: `taxi-dw-daily-incremental-load-and-enrichment`
    - Job ID: `52643488824313`
 
 ## Scheduled Pipeline
