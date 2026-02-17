@@ -16,7 +16,7 @@
 ## How to run
 1. Open a Databricks SQL query editor attached to your SQL Warehouse.
 2. Run `/Users/dvervarcke/Documents/New project/sql/001_build_taxi_dw.sql`.
-3. Run `/Users/dvervarcke/Documents/New project/sql/002_enrich_city_from_external_zip.sql` to map ZIPs to external city names.
+3. Run `/Users/dvervarcke/Documents/New project/sql/002_enrich_city_from_external_zip.sql` once (optional bootstrap of city mappings).
 4. Validate row counts:
 
 ```sql
@@ -47,7 +47,15 @@ SELECT 'fact_taxi_rides', COUNT(*) FROM main.taxi_dw.fact_taxi_rides;
   - Finds ZIPs missing from `main.taxi_dw.zip_city_reference` or still mapped as `UNKNOWN`
   - Calls external ZIP API (`zippopotam.us`) for those ZIPs only
   - Upserts `main.taxi_dw.zip_city_reference`
-  - Rebuilds `main.taxi_dw.dim_city` and `main.taxi_dw.dim_zipcode`
+  - Incrementally upserts `main.taxi_dw.dim_city` and `main.taxi_dw.dim_zipcode` via `MERGE`
+
+## Incremental fact/dim load
+- `001_build_taxi_dw.sql` no longer rebuilds tables from scratch.
+- It maintains `main.taxi_dw.etl_watermark` and processes only source deltas (with a 2-day lookback for late arrivals).
+- It uses `MERGE` into:
+  - `main.taxi_dw.fact_taxi_rides`
+  - `main.taxi_dw.dim_date`
+  - `main.taxi_dw.dim_zipcode`
 
 Manual run:
 ```bash

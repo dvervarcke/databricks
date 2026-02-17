@@ -6,14 +6,14 @@ This project builds and operates a taxi ride warehouse model in Databricks from:
 
 It includes:
 
-- Star-schema build SQL (`fact_taxi_rides`, `dim_date`, `dim_zipcode`, `dim_city`)
+- Incremental star-schema SQL load (`fact_taxi_rides`, `dim_date`, `dim_zipcode`, `dim_city`)
 - External ZIP-to-city enrichment flow
 - Scheduled Databricks Workflow to refresh missing city mappings
 
 ## Repository Structure
 
 - `/Users/dvervarcke/Documents/New project/sql/001_build_taxi_dw.sql`
-  - Initial warehouse build from `samples.nyctaxi.trips`
+  - Incremental warehouse load from `samples.nyctaxi.trips` using watermark + `MERGE`
 - `/Users/dvervarcke/Documents/New project/sql/002_enrich_city_from_external_zip.sql`
   - One-time city enrichment from external ZIP reference
 - `/Users/dvervarcke/Documents/New project/pipelines/update_missing_cities.py`
@@ -54,7 +54,7 @@ It includes:
 - Runs daily at `06:00 America/New_York`
 - Updates only missing/unknown ZIP mappings via `zippopotam.us`
 - Upserts `main.taxi_dw.zip_city_reference`
-- Rebuilds `main.taxi_dw.dim_city` and `main.taxi_dw.dim_zipcode`
+- Incrementally updates `main.taxi_dw.dim_city` and `main.taxi_dw.dim_zipcode` via `MERGE`
 
 Manual trigger:
 
