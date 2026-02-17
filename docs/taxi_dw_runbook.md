@@ -41,9 +41,9 @@ SELECT 'fact_taxi_rides', COUNT(*) FROM main.taxi_dw.fact_taxi_rides;
 ## Scheduled daily pipeline
 - Databricks job: `taxi-dw-daily-incremental-load-and-enrichment`
 - Job ID: `52643488824313`
-- Notebook paths:
-  - `/Workspace/Users/rickoe@hotmail.com/taxi_dw/run_incremental_dw_load`
-  - `/Workspace/Users/rickoe@hotmail.com/taxi_dw/update_missing_cities`
+- Pipeline file paths:
+  - `/Users/rickoe@hotmail.com/taxi_dw/pipelines/run_incremental_dw_load.py`
+  - `/Users/rickoe@hotmail.com/taxi_dw/pipelines/update_missing_cities.py`
 - Schedule: daily at 07:00 `America/Los_Angeles` (PT)
 - Logic:
   - Task 1 (`run-incremental-dw-load`): incrementally loads fact/date/zipcode using watermark + `MERGE`

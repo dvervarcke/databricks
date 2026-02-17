@@ -44,17 +44,20 @@ It includes:
    - `/Users/dvervarcke/Documents/New project/sql/001_build_taxi_dw.sql`
 2. Run one-time enrichment SQL:
    - `/Users/dvervarcke/Documents/New project/sql/002_enrich_city_from_external_zip.sql`
-3. Deploy notebook and job:
-   - Notebook path: `/Workspace/Users/rickoe@hotmail.com/taxi_dw/update_missing_cities`
+3. Deploy pipeline files and job:
+   - Pipeline files:
+     - `/Users/rickoe@hotmail.com/taxi_dw/pipelines/run_incremental_dw_load.py`
+     - `/Users/rickoe@hotmail.com/taxi_dw/pipelines/update_missing_cities.py`
    - Job name: `taxi-dw-daily-incremental-load-and-enrichment`
    - Job ID: `52643488824313`
 
 ## Scheduled Pipeline
 
-- Runs daily at `06:00 America/New_York`
+- Runs daily at `07:00 America/Los_Angeles` (PT)
 - Updates only missing/unknown ZIP mappings via `zippopotam.us`
 - Upserts `main.taxi_dw.zip_city_reference`
-- Incrementally updates `main.taxi_dw.dim_city` and `main.taxi_dw.dim_zipcode` via `MERGE`
+- Task 1 runs incremental DW load (fact/date/zipcode `MERGE`)
+- Task 2 runs city enrichment (`MERGE` updates)
 
 Manual trigger:
 

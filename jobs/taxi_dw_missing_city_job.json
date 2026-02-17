@@ -18,8 +18,8 @@
     {
       "task_key": "run-incremental-dw-load",
       "description": "Incrementally merge new/changed source rows into taxi DW fact and dimensions.",
-      "notebook_task": {
-        "notebook_path": "/Workspace/Users/rickoe@hotmail.com/taxi_dw/run_incremental_dw_load",
+      "spark_python_task": {
+        "python_file": "/Users/rickoe@hotmail.com/taxi_dw/pipelines/run_incremental_dw_load.py",
         "source": "WORKSPACE"
       },
       "environment_key": "default",
@@ -33,8 +33,8 @@
           "task_key": "run-incremental-dw-load"
         }
       ],
-      "notebook_task": {
-        "notebook_path": "/Workspace/Users/rickoe@hotmail.com/taxi_dw/update_missing_cities",
+      "spark_python_task": {
+        "python_file": "/Users/rickoe@hotmail.com/taxi_dw/pipelines/update_missing_cities.py",
         "source": "WORKSPACE"
       },
       "environment_key": "default",
