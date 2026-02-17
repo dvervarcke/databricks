@@ -3,6 +3,8 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import DoubleType, IntegerType
 
 SOURCE_PATH = spark.conf.get("taxi.source.path")
+SOURCE_FORMAT = spark.conf.get("taxi.source.format", "csv")
+SCHEMA_LOCATION = spark.conf.get("taxi.schema.location", "dbfs:/pipelines/taxi_dwh/schema")
 
 
 @dlt.table(
@@ -13,9 +15,12 @@ SOURCE_PATH = spark.conf.get("taxi.source.path")
 def taxitrips_raw():
     return (
         spark.readStream.format("cloudFiles")
-        .option("cloudFiles.format", "csv")
-        .option("header", "true")
+        .option("cloudFiles.format", SOURCE_FORMAT)
+        .option("cloudFiles.schemaLocation", SCHEMA_LOCATION)
+        .option("cloudFiles.schemaEvolutionMode", "rescue")
         .option("cloudFiles.inferColumnTypes", "false")
+        .option("rescuedDataColumn", "_rescued_data")
+        .option("header", "true")
         .load(SOURCE_PATH)
         .withColumn("ingest_ts", F.current_timestamp())
         .withColumn("source_file", F.input_file_name())
@@ -36,10 +41,13 @@ def taxitrips_raw():
 def taxitrips_clean():
     raw = dlt.read_stream("taxitrips_raw")
 
+    pickup_col = F.coalesce(F.col("tpep_pickup_datetime"), F.col("lpep_pickup_datetime"))
+    dropoff_col = F.coalesce(F.col("tpep_dropoff_datetime"), F.col("lpep_dropoff_datetime"))
+
     typed = (
         raw.withColumn("vendor_id", F.col("VendorID").cast(IntegerType()))
-        .withColumn("pickup_datetime", F.to_timestamp("tpep_pickup_datetime"))
-        .withColumn("dropoff_datetime", F.to_timestamp("tpep_dropoff_datetime"))
+        .withColumn("pickup_datetime", F.to_timestamp(pickup_col))
+        .withColumn("dropoff_datetime", F.to_timestamp(dropoff_col))
         .withColumn("passenger_count", F.col("passenger_count").cast(IntegerType()))
         .withColumn("trip_distance", F.col("trip_distance").cast(DoubleType()))
         .withColumn("ratecode_id", F.col("RatecodeID").cast(IntegerType()))
@@ -54,7 +62,7 @@ def taxitrips_clean():
         .withColumn("improvement_surcharge", F.col("improvement_surcharge").cast(DoubleType()))
         .withColumn("total_amount", F.col("total_amount").cast(DoubleType()))
         .withColumn("congestion_surcharge", F.col("congestion_surcharge").cast(DoubleType()))
-        .withColumn("airport_fee", F.col("Airport_fee").cast(DoubleType()))
+        .withColumn("airport_fee", F.coalesce(F.col("Airport_fee"), F.col("airport_fee")).cast(DoubleType()))
     )
 
     return (
