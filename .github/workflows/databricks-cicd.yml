@@ -54,27 +54,18 @@ jobs:
           fi
           echo "target=$target" >> "$GITHUB_OUTPUT"
 
-      - name: Check Databricks credentials
-        id: creds
+      - name: Require Databricks credentials
         run: |
-          if [ -n "${{ secrets.DATABRICKS_HOST }}" ] && [ -n "${{ secrets.DATABRICKS_TOKEN }}" ]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=false" >> "$GITHUB_OUTPUT"
+          if [ -z "${{ secrets.DATABRICKS_HOST }}" ] || [ -z "${{ secrets.DATABRICKS_TOKEN }}" ]; then
+            echo "Missing required secrets: DATABRICKS_HOST and/or DATABRICKS_TOKEN"
+            exit 1
           fi
 
-      - name: Validate bundle (dev)
-        if: steps.creds.outputs.available == 'true'
+      - name: Validate bundle
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: databricks bundle validate -t ${{ steps.target.outputs.target }}
-
-      - name: Skip validate (missing secrets)
-        if: steps.creds.outputs.available != 'true'
-        run: |
-          echo "Skipping Databricks validation."
-          echo "Set repository secrets DATABRICKS_HOST and DATABRICKS_TOKEN to enable full CI validation."
 
   deploy-dev:
     if: (github.event_name == 'push' && (github.ref_name == 'dev' || github.ref_name == 'codex/dev')) || (github.event_name == 'workflow_dispatch' && inputs.target == 'dev')
