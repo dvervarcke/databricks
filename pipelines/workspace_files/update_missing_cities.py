@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import urllib.error
 import urllib.request
@@ -10,9 +11,15 @@ from datetime import datetime, timezone
 
 from pyspark.sql import functions as F
 
-CATALOG = "main"
-SCHEMA = "taxi_dw"
-SOURCE_TABLE = "samples.nyctaxi.trips"
+parser = argparse.ArgumentParser()
+parser.add_argument("--catalog", default="main")
+parser.add_argument("--schema", default="taxi_dw")
+parser.add_argument("--source-table", default="samples.nyctaxi.trips")
+args, _ = parser.parse_known_args()
+
+CATALOG = args.catalog
+SCHEMA = args.schema
+SOURCE_TABLE = args.source_table
 REF_TABLE = f"{CATALOG}.{SCHEMA}.zip_city_reference"
 DIM_CITY_TABLE = f"{CATALOG}.{SCHEMA}.dim_city"
 DIM_ZIP_TABLE = f"{CATALOG}.{SCHEMA}.dim_zipcode"

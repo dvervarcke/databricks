@@ -1,0 +1,93 @@
+bundle:
+  name: taxi-dw
+
+variables:
+  catalog:
+    description: Target catalog for warehouse objects
+    default: main
+  schema:
+    description: Target schema/database for warehouse objects
+    default: taxi_dw
+  source_table:
+    description: Source trips table
+    default: samples.nyctaxi.trips
+
+workspace:
+  host: https://dbc-6cdd17f5-8c16.cloud.databricks.com
+
+resources:
+  jobs:
+    taxi_dw_daily_incremental:
+      name: taxi-dw-daily-incremental-load-and-enrichment
+      max_concurrent_runs: 1
+      environments:
+        - environment_key: default
+          spec:
+            client: "2"
+      tasks:
+        - task_key: run-incremental-dw-load
+          description: Incrementally merge new/changed source rows into taxi DW fact and dimensions.
+          spark_python_task:
+            python_file: ${workspace.file_path}/pipelines/run_incremental_dw_load.py
+            source: WORKSPACE
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --schema
+              - ${var.schema}
+              - --source-table
+              - ${var.source_table}
+          environment_key: default
+          timeout_seconds: 0
+        - task_key: update-missing-cities
+          description: Refresh missing city names from external ZIP reference and incrementally upsert city/zipcode dimensions.
+          depends_on:
+            - task_key: run-incremental-dw-load
+          spark_python_task:
+            python_file: ${workspace.file_path}/pipelines/update_missing_cities.py
+            source: WORKSPACE
+            parameters:
+              - --catalog
+              - ${var.catalog}
+              - --schema
+              - ${var.schema}
+              - --source-table
+              - ${var.source_table}
+          environment_key: default
+          timeout_seconds: 0
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    resources:
+      jobs:
+        taxi_dw_daily_incremental:
+          name: taxi-dw-dev-incremental-load-and-enrichment
+          schedule:
+            quartz_cron_expression: "0 0 7 * * ?"
+            timezone_id: America/Los_Angeles
+            pause_status: PAUSED
+    variables:
+      catalog: main
+      schema: taxi_dw
+      source_table: samples.nyctaxi.trips
+
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    resources:
+      jobs:
+        taxi_dw_daily_incremental:
+          name: taxi-dw-prod-daily-incremental-load-and-enrichment
+          schedule:
+            quartz_cron_expression: "0 0 7 * * ?"
+            timezone_id: America/Los_Angeles
+            pause_status: UNPAUSED
+    variables:
+      catalog: prod
+      schema: taxi_dw
+      source_table: samples.nyctaxi.trips
