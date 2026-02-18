@@ -71,7 +71,7 @@ targets:
             timezone_id: America/Los_Angeles
             pause_status: PAUSED
     variables:
-      catalog: main
+      catalog: dev
       schema: taxi_dw
       source_table: samples.nyctaxi.trips
 

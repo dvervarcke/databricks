@@ -2,18 +2,27 @@ name: Databricks CI/CD
 
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["main", "dev", "codex/dev"]
     paths:
       - "databricks.yml"
       - "pipelines/**"
       - ".github/workflows/databricks-cicd.yml"
   push:
-    branches: ["main"]
+    branches: ["main", "dev", "codex/dev"]
     paths:
       - "databricks.yml"
       - "pipelines/**"
       - ".github/workflows/databricks-cicd.yml"
   workflow_dispatch:
+    inputs:
+      target:
+        description: "Databricks bundle target to deploy"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - prod
 
 jobs:
   validate:
@@ -24,6 +33,26 @@ jobs:
 
       - name: Setup Databricks CLI
         uses: databricks/setup-cli@main
+
+      - name: Resolve bundle target
+        id: target
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            target="${{ inputs.target }}"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            if [ "${{ github.base_ref }}" = "main" ]; then
+              target="prod"
+            else
+              target="dev"
+            fi
+          else
+            if [ "${{ github.ref_name }}" = "main" ]; then
+              target="prod"
+            else
+              target="dev"
+            fi
+          fi
+          echo "target=$target" >> "$GITHUB_OUTPUT"
 
       - name: Check Databricks credentials
         id: creds
@@ -39,7 +68,7 @@ jobs:
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-        run: databricks bundle validate -t dev
+        run: databricks bundle validate -t ${{ steps.target.outputs.target }}
 
       - name: Skip validate (missing secrets)
         if: steps.creds.outputs.available != 'true'
@@ -47,8 +76,39 @@ jobs:
           echo "Skipping Databricks validation."
           echo "Set repository secrets DATABRICKS_HOST and DATABRICKS_TOKEN to enable full CI validation."
 
+  deploy-dev:
+    if: (github.event_name == 'push' && (github.ref_name == 'dev' || github.ref_name == 'codex/dev')) || (github.event_name == 'workflow_dispatch' && inputs.target == 'dev')
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Require Databricks credentials
+        run: |
+          if [ -z "${{ secrets.DATABRICKS_HOST }}" ] || [ -z "${{ secrets.DATABRICKS_TOKEN }}" ]; then
+            echo "Missing required secrets: DATABRICKS_HOST and/or DATABRICKS_TOKEN"
+            exit 1
+          fi
+
+      - name: Validate bundle (dev)
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: databricks bundle validate -t dev
+
+      - name: Deploy to Databricks dev target
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: databricks bundle deploy -t dev
+
   deploy-prod:
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    if: (github.event_name == 'push' && github.ref_name == 'main') || (github.event_name == 'workflow_dispatch' && inputs.target == 'prod')
     needs: validate
     runs-on: ubuntu-latest
     environment: production
