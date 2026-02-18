@@ -18,9 +18,6 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    env:
-      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,17 +25,33 @@ jobs:
       - name: Setup Databricks CLI
         uses: databricks/setup-cli@main
 
+      - name: Check Databricks credentials
+        id: creds
+        run: |
+          if [ -n "${{ secrets.DATABRICKS_HOST }}" ] && [ -n "${{ secrets.DATABRICKS_TOKEN }}" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Validate bundle (dev)
+        if: steps.creds.outputs.available == 'true'
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: databricks bundle validate -t dev
+
+      - name: Skip validate (missing secrets)
+        if: steps.creds.outputs.available != 'true'
+        run: |
+          echo "Skipping Databricks validation."
+          echo "Set repository secrets DATABRICKS_HOST and DATABRICKS_TOKEN to enable full CI validation."
 
   deploy-prod:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: ubuntu-latest
     environment: production
-    env:
-      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -46,8 +59,21 @@ jobs:
       - name: Setup Databricks CLI
         uses: databricks/setup-cli@main
 
+      - name: Require Databricks credentials
+        run: |
+          if [ -z "${{ secrets.DATABRICKS_HOST }}" ] || [ -z "${{ secrets.DATABRICKS_TOKEN }}" ]; then
+            echo "Missing required secrets: DATABRICKS_HOST and/or DATABRICKS_TOKEN"
+            exit 1
+          fi
+
       - name: Validate bundle (prod)
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: databricks bundle validate -t prod
 
       - name: Deploy to Databricks prod target
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: databricks bundle deploy -t prod
