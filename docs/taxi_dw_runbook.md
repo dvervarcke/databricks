@@ -63,3 +63,11 @@ Manual run:
 ```bash
 databricks jobs run-now 52643488824313 --profile rickoe@hotmail.com
 ```
+
+## CI/CD deployment
+- Bundle config: `/Users/dvervarcke/Documents/New project/databricks.yml`
+- GitHub workflow: `/Users/dvervarcke/Documents/New project/.github/workflows/databricks-cicd.yml`
+- Prod target deploys to catalog `prod` and schema `taxi_dw` in the same Databricks workspace.
+- Workflow behavior:
+  - Pull request to `main`: `databricks bundle validate -t dev`
+  - Push to `main` / manual dispatch: validate + `databricks bundle deploy -t prod`

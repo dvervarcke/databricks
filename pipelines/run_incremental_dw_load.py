@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import argparse
+
 STATEMENTS = [
     """
     CREATE CATALOG IF NOT EXISTS main
@@ -304,12 +306,26 @@ STATEMENTS = [
     """,
 ]
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--catalog", default="main")
+parser.add_argument("--schema", default="taxi_dw")
+parser.add_argument("--source-table", default="samples.nyctaxi.trips")
+args, _ = parser.parse_known_args()
+
+namespace = f"{args.catalog}.{args.schema}"
+
+
+def render(sql: str) -> str:
+    return sql.replace("main.taxi_dw", namespace).replace("samples.nyctaxi.trips", args.source_table)
+
+
 for i, statement in enumerate(STATEMENTS, start=1):
-    spark.sql(statement)
+    spark.sql(render(statement))
     print(f"Statement {i}/{len(STATEMENTS)} succeeded")
 
 summary = spark.sql(
-    """
+    render(
+        """
     SELECT
       (SELECT COUNT(*) FROM main.taxi_dw.fact_taxi_rides) AS fact_rows,
       (SELECT COUNT(*) FROM main.taxi_dw.dim_date) AS date_rows,
@@ -317,6 +333,7 @@ summary = spark.sql(
       (SELECT COUNT(*) FROM main.taxi_dw.dim_city) AS city_rows,
       (SELECT max(last_event_ts) FROM main.taxi_dw.etl_watermark WHERE process_name = 'fact_taxi_rides') AS watermark_ts
     """
+    )
 ).collect()[0]
 
 print(

@@ -1,0 +1,53 @@
+name: Databricks CI/CD
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "databricks.yml"
+      - "pipelines/**"
+      - ".github/workflows/databricks-cicd.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "databricks.yml"
+      - "pipelines/**"
+      - ".github/workflows/databricks-cicd.yml"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Validate bundle (dev)
+        run: databricks bundle validate -t dev
+
+  deploy-prod:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Databricks CLI
+        uses: databricks/setup-cli@main
+
+      - name: Validate bundle (prod)
+        run: databricks bundle validate -t prod
+
+      - name: Deploy to Databricks prod target
+        run: databricks bundle deploy -t prod
