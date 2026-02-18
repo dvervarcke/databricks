@@ -316,7 +316,11 @@ namespace = f"{args.catalog}.{args.schema}"
 
 
 def render(sql: str) -> str:
-    return sql.replace("main.taxi_dw", namespace).replace("samples.nyctaxi.trips", args.source_table)
+    return (
+        sql.replace("CREATE CATALOG IF NOT EXISTS main", f"CREATE CATALOG IF NOT EXISTS {args.catalog}")
+        .replace("main.taxi_dw", namespace)
+        .replace("samples.nyctaxi.trips", args.source_table)
+    )
 
 
 for i, statement in enumerate(STATEMENTS, start=1):
