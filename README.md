@@ -61,7 +61,7 @@ It includes:
 The bundle deploys to the same Databricks workspace with different targets:
 
 - `dev` target:
-  - Catalog: `main`
+  - Catalog: `dev`
   - Schema: `taxi_dw`
   - Job schedule: paused
 - `prod` target:
