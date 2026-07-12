@@ -1,6 +1,6 @@
 {
-  // Use Homebrew Python 3.13 for this project (system default is 3.9).
-  "python.defaultInterpreterPath": "/opt/homebrew/bin/python3.13",
+  // Use the project's 3.13 virtualenv (has pyspark for the bundle pipelines).
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
 
   // Keep dbt build artifacts out of search results and the file watcher.
   "search.exclude": {
