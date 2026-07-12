@@ -3,4 +3,7 @@
 target/
 dbt_packages/
 logs/
+
+# local Python virtual environment
+.venv/
 .venv/
