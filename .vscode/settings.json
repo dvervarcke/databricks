@@ -1,4 +1,7 @@
 {
+  // Use Homebrew Python 3.13 for this project (system default is 3.9).
+  "python.defaultInterpreterPath": "/opt/homebrew/bin/python3.13",
+
   // Keep dbt build artifacts out of search results and the file watcher.
   "search.exclude": {
     "**/target": true,
