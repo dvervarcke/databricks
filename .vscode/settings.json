@@ -1,0 +1,13 @@
+{
+  // Keep dbt build artifacts out of search results and the file watcher.
+  "search.exclude": {
+    "**/target": true,
+    "**/dbt_packages": true,
+    "**/logs": true
+  },
+  "files.watcherExclude": {
+    "**/target/**": true,
+    "**/dbt_packages/**": true,
+    "**/logs/**": true
+  }
+}
