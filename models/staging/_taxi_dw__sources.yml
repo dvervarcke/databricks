@@ -1,0 +1,19 @@
+version: 2
+
+sources:
+  - name: taxi_dw
+    description: "Taxi data warehouse star schema, populated by the upstream ETL."
+    # Use the catalog of whatever environment is connected (dev -> dev, prod -> prod).
+    database: "{{ target.database }}"
+    schema: taxi_dw
+    tables:
+      - name: fact_taxi_rides
+        description: "One row per taxi ride."
+      - name: dim_city
+        description: "City dimension."
+      - name: dim_date
+        description: "Calendar date dimension."
+      - name: dim_zipcode
+        description: "Zipcode dimension, linked to a city."
+      - name: zip_city_reference
+        description: "Reference mapping between zipcodes and cities."

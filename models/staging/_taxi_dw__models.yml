@@ -1,0 +1,49 @@
+version: 2
+
+models:
+  - name: stg_taxi__rides
+    description: "Cleaned taxi ride facts, one row per ride."
+    columns:
+      - name: ride_key
+        description: "Unique ride identifier."
+        data_tests:
+          - unique
+          - not_null
+      - name: pickup_zipcode_key
+        description: "FK to stg_taxi__zipcodes."
+      - name: dropoff_zipcode_key
+        description: "FK to stg_taxi__zipcodes."
+      - name: pickup_date_key
+        description: "FK to stg_taxi__dates."
+      - name: fare_amount
+        description: "Fare charged for the ride."
+
+  - name: stg_taxi__cities
+    description: "City dimension."
+    columns:
+      - name: city_key
+        data_tests:
+          - unique
+          - not_null
+
+  - name: stg_taxi__zipcodes
+    description: "Zipcode dimension, linked to a city."
+    columns:
+      - name: zipcode_key
+        data_tests:
+          - unique
+          - not_null
+      - name: city_key
+        description: "FK to stg_taxi__cities."
+        data_tests:
+          - relationships:
+              to: ref('stg_taxi__cities')
+              field: city_key
+
+  - name: stg_taxi__dates
+    description: "Calendar date dimension."
+    columns:
+      - name: date_key
+        data_tests:
+          - unique
+          - not_null
