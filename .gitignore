@@ -6,3 +6,4 @@ logs/
 
 # local Python virtual environment
 .venv/
+.venv/

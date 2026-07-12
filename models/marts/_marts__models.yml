@@ -35,3 +35,18 @@ models:
         description: "Number of rides."
         data_tests:
           - not_null
+
+  - name: agg_rides_monthly_by_city
+    description: >
+      Monthly ride volume and fare metrics aggregated by pickup city.
+    columns:
+      - name: pickup_year
+        description: "Calendar year of pickup."
+      - name: pickup_month
+        description: "Calendar month number of pickup."
+      - name: pickup_city
+        description: "City of pickup."
+      - name: ride_count
+        description: "Number of rides."
+        data_tests:
+          - not_null
