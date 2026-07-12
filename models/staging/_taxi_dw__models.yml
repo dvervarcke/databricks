@@ -37,8 +37,9 @@ models:
         description: "FK to stg_taxi__cities."
         data_tests:
           - relationships:
-              to: ref('stg_taxi__cities')
-              field: city_key
+              arguments:
+                to: ref('stg_taxi__cities')
+                field: city_key
 
   - name: stg_taxi__dates
     description: "Calendar date dimension."
