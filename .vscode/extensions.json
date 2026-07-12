@@ -1,0 +1,23 @@
+{
+  // Recommended extensions for this dbt + Databricks project.
+  // VS Code will prompt to install these when the repo is opened.
+  "recommendations": [
+    // Claude Code — agentic coding assistant, runs in a side panel.
+    "anthropic.claude-code",
+
+    // Official dbt extension (Fusion engine): language server, autocomplete,
+    // ref/source navigation, inline compile errors, column-level lineage.
+    "dbtLabsInc.dbt",
+
+    // dbt Power User (Altimate): compiled-SQL preview, query results,
+    // lineage graph, run/test buttons. Great complement to the above.
+    "innoverio.vscode-dbt-power-user",
+
+    // Databricks: deploy/run the Asset Bundle jobs & pipelines, browse the
+    // workspace, and sync from VS Code.
+    "databricks.databricks",
+
+    // Python — for the bundle's pipelines/ Spark jobs.
+    "ms-python.python"
+  ]
+}

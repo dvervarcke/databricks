@@ -1,0 +1,37 @@
+version: 2
+
+models:
+  - name: fct_rides
+    description: >
+      Enriched ride fact: one row per taxi ride with pickup/dropoff city and
+      zipcode resolved from the dimensions, plus pickup date attributes and a
+      derived trip duration.
+    columns:
+      - name: ride_key
+        description: "Unique ride identifier."
+        data_tests:
+          - unique
+          - not_null
+      - name: pickup_city
+        description: "City the ride was picked up in."
+      - name: dropoff_city
+        description: "City the ride was dropped off in."
+      - name: fare_amount
+        description: "Fare charged for the ride."
+        data_tests:
+          - not_null
+      - name: trip_duration_seconds
+        description: "Dropoff minus pickup, in seconds."
+
+  - name: agg_rides_daily_by_city
+    description: >
+      Daily ride volume and fare metrics aggregated by pickup city.
+    columns:
+      - name: pickup_date
+        description: "Calendar date of pickup."
+      - name: pickup_city
+        description: "City of pickup."
+      - name: ride_count
+        description: "Number of rides."
+        data_tests:
+          - not_null
